@@ -119,6 +119,11 @@ td.notes-edit:hover .noteicon { opacity: 1; }
   content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
   background: var(--ink); color: #fff; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 10; pointer-events: none;
 }
+/* Right-edge Actions column: pin tooltips to the button's right edge so they stay on-screen. */
+.rowactions .iconbtn[data-tip]:hover::after { left: auto; right: 0; transform: none; }
+/* Header + floating theme toggles sit at the top of the viewport: show tips below. */
+.hdr .iconbtn[data-tip]:hover::after { bottom: auto; top: calc(100% + 6px); }
+.themebtn.floating[data-tip]:hover::after { bottom: auto; top: calc(100% + 6px); left: auto; right: 0; transform: none; }
 .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
 .chip .material-icons-outlined { font-size: 13px; }
 .chip.published { background: var(--green-soft); color: var(--green); }

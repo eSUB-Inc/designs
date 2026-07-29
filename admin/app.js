@@ -265,9 +265,9 @@
     function markPending(slug, patch) {
       setPending(function (list) { return list.map(function (p) { return p.slug === slug ? Object.assign({}, p, patch) : p; }); });
     }
-    function addPending(slug, kind) {
+    function addPending(slug, kind, prevEncSha) {
       setPending(function (list) {
-        return list.filter(function (p) { return p.slug !== slug; }).concat({ slug: slug, kind: kind, status: "publishing", startedAt: Date.now(), prevEncSha: null });
+        return list.filter(function (p) { return p.slug !== slug; }).concat({ slug: slug, kind: kind, status: "publishing", startedAt: Date.now(), prevEncSha: prevEncSha || null });
       });
     }
 
@@ -288,18 +288,20 @@
       try { prevSha = await store.getEncSha(pg.slug); } catch (e) {}
       await store.updatePage(pg.slug, htmlText);
       audit(user, "update", pg.slug, "replaced html (" + file.name + ", " + htmlText.length + " bytes)");
-      setPending(function (list) {
-        return list.filter(function (p) { return p.slug !== pg.slug; }).concat({ slug: pg.slug, kind: "update", status: "publishing", startedAt: Date.now(), prevEncSha: prevSha });
-      });
+      addPending(pg.slug, "update", prevSha);
       setModal(null);
       toast("Submitted — republishing " + pg.slug);
     }
     async function doReset(pg) {
       setModal(null);
+      // Snapshot the ciphertext sha first: a reset re-encrypts the SAME page, so
+      // "published" means the sha changed — existence + 200 are already true.
+      var prevSha = null;
+      try { prevSha = await store.getEncSha(pg.slug); } catch (e) {}
       try { await store.resetCode(pg.slug); }
       catch (e) { toast("Code reset failed: " + e.message); reload(); return; }
       audit(user, "reset-code", pg.slug);
-      addPending(pg.slug, "code reset");
+      addPending(pg.slug, "code reset", prevSha);
       toast("Code reset submitted for " + pg.slug);
       reload();
     }
