@@ -435,7 +435,12 @@
             <div style=${{ marginTop: "8px", fontSize: "13px" }}><${HelpDesk} suffix=" if this keeps happening." /></div>
             <div style=${{ marginTop: "12px" }}><button class="btn btn-quiet" onClick=${reload}>Retry</button></div></div>`
           : loading ? html`<div class="empty">Loading pages…</div>`
-          : visible.length === 0 ? html`<div class="empty">${search ? "No pages match “" + search + "”." : "No pages yet. Upload the first one."}</div>`
+          : visible.length === 0 ? html`<div class="empty">
+              ${search || byFilter.length || statusFilter.length
+                ? html`No pages match the current ${search ? "search" : "filters"}.
+                  <div style=${{ marginTop: "12px" }}><button class="btn btn-quiet" onClick=${function () { setSearch(""); setByFilter([]); setStatusFilter([]); setOpenFilter(null); }}>Clear search & filters</button></div>`
+                : "No pages yet. Upload the first one."}
+            </div>`
           : html`<div class="tablewrap"><table>
             <thead><tr>${sortHeader("Page", "name")}${filterHeader("Status", "status", statusOptions, statusFilter, setStatusFilter)}<th>Notes</th><th>Public URL</th><th>Access Code</th>${sortHeader("Last Published", "pub")}${filterHeader("By", "by", byOptions, byFilter, setByFilter)}<th style=${{ textAlign: "right" }}>Actions</th></tr></thead>
             <tbody>
