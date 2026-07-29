@@ -94,6 +94,13 @@
       var e = entries[i];
       if (e.type === "dir") { await moveDir(repo, e.path, toDir + "/" + e.name, message); continue; }
       var f = await getFile(repo, e.path);
+      // The contents API returns EMPTY content for blobs over 1 MB — copying
+      // that would silently truncate the file to zero bytes (and the delete
+      // below would destroy the original). Refuse instead.
+      if (e.size > 0 && !(f.content && f.content.length)) {
+        throw new Error(e.path + " is " + (e.size / 1048576).toFixed(1) +
+          " MB — over the 1 MB GitHub API limit, so it can't be moved by the admin app. Move it via git, or ask for the app's large-file upgrade.");
+      }
       await putFile(repo, toDir + "/" + e.name, f.content.replace(/\n/g, ""), message);
       await deleteFile(repo, e.path, f.sha, message);
     }
