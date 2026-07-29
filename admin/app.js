@@ -55,19 +55,23 @@
   // ---------- small shared pieces ----------
   function useToasts() {
     var st = useState([]); var toasts = st[0], setToasts = st[1];
-    function push(msg) {
+    function dismiss(id) { setToasts(function (t) { return t.filter(function (x) { return x.id !== id; }); }); }
+    function push(msg, kind) {
       var id = Date.now() + Math.random();
-      setToasts(function (t) { return t.concat({ id: id, msg: msg }); });
-      setTimeout(function () { setToasts(function (t) { return t.filter(function (x) { return x.id !== id; }); }); }, 3200);
+      setToasts(function (t) { return t.concat({ id: id, msg: msg, kind: kind }); });
+      // Errors must be readable, not blink-and-miss: 12s + click-to-dismiss.
+      setTimeout(function () { dismiss(id); }, kind === "error" ? 12000 : 3200);
     }
-    return [toasts, push];
+    return [toasts, push, dismiss];
   }
   function copyText(text, toast, label) {
     navigator.clipboard.writeText(text).then(function () { toast(label || "Copied to clipboard"); },
       function () { toast("Copy failed — clipboard unavailable"); });
   }
   function Toasts(props) {
-    return html`<div class="toasts">${props.items.map(function (t) { return html`<div class="toast" key=${t.id}>${t.msg}</div>`; })}</div>`;
+    return html`<div class="toasts">${props.items.map(function (t) {
+      return html`<div class="toast ${t.kind === "error" ? "err" : ""}" key=${t.id} onClick=${function () { props.onDismiss(t.id); }}>${t.msg}</div>`;
+    })}</div>`;
   }
   // "Contact Help Desk" with the label as the link — the one affordance for
   // access requests and error escalation everywhere it appears.
@@ -222,7 +226,7 @@
     var s6 = useState([]); var pending = s6[0], setPending = s6[1];
     var s7 = useState(null); var modal = s7[0], setModal = s7[1];
     var s8 = useState(null); var loadErr = s8[0], setLoadErr = s8[1];
-    var toastPair = useToasts(); var toasts = toastPair[0], toast = toastPair[1];
+    var toastPair = useToasts(); var toasts = toastPair[0], toast = toastPair[1], dismissToast = toastPair[2];
     var copy = function (text, label) { copyText(text, toast, label); };
     var pendingRef = useRef(pending); pendingRef.current = pending;
 
@@ -298,7 +302,7 @@
       var prevSha = null;
       try { prevSha = await store.getEncSha(pg.slug); } catch (e) {}
       try { await store.resetCode(pg.slug); }
-      catch (e) { toast("Code reset failed: " + e.message); reload(); return; }
+      catch (e) { toast("Code reset failed: " + e.message, "error"); reload(); return; }
       audit(user, "reset-code", pg.slug);
       addPending(pg.slug, "code reset", prevSha);
       toast("Code reset submitted for " + pg.slug);
@@ -307,7 +311,7 @@
     async function doArchive(pg) {
       setModal(null);
       try { await store.archivePage(pg.slug); }
-      catch (e) { toast("Archive failed: " + e.message); reload(); return; }
+      catch (e) { toast("Archive failed: " + e.message, "error"); reload(); return; }
       audit(user, "archive", pg.slug);
       toast(pg.slug + " archived — unpublish in progress");
       reload();
@@ -315,7 +319,7 @@
     async function doRestore(pg) {
       setModal(null);
       try { await store.restorePage(pg.slug); }
-      catch (e) { toast("Restore failed: " + e.message); reload(); return; }
+      catch (e) { toast("Restore failed: " + e.message, "error"); reload(); return; }
       audit(user, "restore", pg.slug);
       addPending(pg.slug, "restore");
       toast(pg.slug + " restoring — a new code will be minted");
@@ -324,7 +328,7 @@
     async function doDelete(pg) {
       setModal(null);
       try { await store.deletePage(pg.slug, pg.status); }
-      catch (e) { toast("Delete failed: " + e.message); reload(); return; }
+      catch (e) { toast("Delete failed: " + e.message, "error"); reload(); return; }
       audit(user, "delete", pg.slug, "was " + pg.status);
       toast(pg.slug + " deleted");
       reload();
@@ -483,7 +487,7 @@
         onClose=${function () { setModal(null); }} onConfirm=${function () { doRestore(modal.page); }} />`}
       ${modal && modal.kind === "notes" && html`<${NotesModal} page=${modal.page} onClose=${function () { setModal(null); }} onSave=${doSaveNotes} />`}
       ${modal && modal.kind === "fail" && html`<${FailModal} pending=${modal.pending} copy=${copy} onClose=${function () { setModal(null); }} />`}
-      <${Toasts} items=${toasts} />
+      <${Toasts} items=${toasts} onDismiss=${dismissToast} />
     </div>`;
   }
 
