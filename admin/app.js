@@ -272,7 +272,12 @@
               ? await store.checkUnpublished(p.slug)
               : await store.checkPublished(p.slug, p.prevEncSha);
             if (done) {
-              markPending(p.slug, { status: "published" });
+              var slug = p.slug;
+              markPending(slug, { status: "published", completedAt: Date.now() });
+              // Success cards fade (CSS) and are dropped a minute after completion.
+              setTimeout(function () {
+                setPending(function (list) { return list.filter(function (x) { return !(x.slug === slug && x.status === "published"); }); });
+              }, 60000);
               await reload();
             } else if (Date.now() - p.startedAt > CFG.publishing.pollTimeoutMs) {
               markPending(p.slug, { status: "failed", error: (p.kind === "archive" ? "Unpublish" : p.kind === "delete" ? "Delete" : "Publish") + " did not complete within " + Math.round(CFG.publishing.pollTimeoutMs / 60000) + " minutes." });
@@ -443,7 +448,7 @@
         if (!statusFilter.length || statusFilter.indexOf(st) >= 0) byCounts[by] = (byCounts[by] || 0) + 1;
       });
     })();
-    var strip = pending.filter(function (p) { return p.status !== "published" || Date.now() - p.startedAt < 3600000; });
+    var strip = pending.filter(function (p) { return p.status !== "published" || Date.now() - (p.completedAt || p.startedAt) < 61000; });
 
     function failModal(p) { setModal({ kind: "fail", pending: p }); }
 
