@@ -55,10 +55,22 @@
     return req("GET", "/repos/" + G.owner + "/" + repo + "/contents/" + path + "?ref=" + G.branch);
   }
 
-  async function getFile(repo, path) {
+  async function getFile(repo, path, metaOnly) {
     var r = await req("GET", "/repos/" + G.owner + "/" + repo + "/contents/" + encodeURI(path) + "?ref=" + G.branch);
     if (r.notFound) return null;
-    return r; // { content: base64, sha, ... }
+    // The contents API returns EMPTY content for blobs over 1 MB; fetch those
+    // via the git blobs API (good to 100 MB). metaOnly callers (sha/size
+    // checks, publish polling) skip the potentially multi-MB download.
+    if (!metaOnly && r.size > 0 && !(r.content && r.content.length)) {
+      var blob = await req("GET", "/repos/" + G.owner + "/" + repo + "/git/blobs/" + r.sha);
+      if (blob && blob.content) { r.content = blob.content; r.encoding = blob.encoding; }
+    }
+    return r; // { content: base64, sha, size, ... }
+  }
+
+  // Full recursive tree of the branch: one call yields every path + blob size.
+  function getTree(repo) {
+    return req("GET", "/repos/" + G.owner + "/" + repo + "/git/trees/" + G.branch + "?recursive=1");
   }
 
   function putFile(repo, path, base64Content, message, sha) {
@@ -94,12 +106,10 @@
       var e = entries[i];
       if (e.type === "dir") { await moveDir(repo, e.path, toDir + "/" + e.name, message); continue; }
       var f = await getFile(repo, e.path);
-      // The contents API returns EMPTY content for blobs over 1 MB — copying
-      // that would silently truncate the file to zero bytes (and the delete
-      // below would destroy the original). Refuse instead.
-      if (e.size > 0 && !(f.content && f.content.length)) {
-        throw new Error(e.path + " is " + (e.size / 1048576).toFixed(1) +
-          " MB — over the 1 MB GitHub API limit, so it can't be moved by the admin app. Move it via git, or ask for the app's large-file upgrade.");
+      // Defense-in-depth: never copy empty content over a non-empty original —
+      // a truncated copy followed by the delete below would be data loss.
+      if (e.size > 0 && !(f && f.content && f.content.length)) {
+        throw new Error("Could not read " + e.path + " from the API — move aborted to protect the file.");
       }
       await putFile(repo, toDir + "/" + e.name, f.content.replace(/\n/g, ""), message);
       await deleteFile(repo, e.path, f.sha, message);
@@ -119,7 +129,7 @@
 
   window.GitHubApi = {
     setToken: setToken, verifyToken: verifyToken, listDir: listDir, getFile: getFile,
-    putFile: putFile, deleteFile: deleteFile, latestCommit: latestCommit,
+    getTree: getTree, putFile: putFile, deleteFile: deleteFile, latestCommit: latestCommit,
     moveDir: moveDir, deleteDir: deleteDir,
   };
 })();

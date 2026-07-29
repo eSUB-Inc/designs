@@ -42,23 +42,29 @@
       await gh.putFile(G.privateRepo, "access-codes.xlsx", out, message, book.sha);
     }
 
-    async function listSlugs(dir) {
-      var entries = await gh.listDir(G.privateRepo, dir);
-      if (entries.notFound) return [];
-      return entries.filter(function (e) { return e.type === "dir"; }).map(function (e) { return e.name; });
-    }
-
     async function loadPages() {
-      var results = await Promise.all([readWorkbook(), listSlugs("internal"), listSlugs("archive")]);
-      var book = results[0], live = results[1], archived = results[2];
+      // One recursive tree call yields every slug AND its html size — no
+      // per-folder listings needed.
+      var results = await Promise.all([readWorkbook(), gh.getTree(G.privateRepo)]);
+      var book = results[0];
+      var tree = (results[1] && results[1].tree) || [];
       var byPath = {};
       book.rows.forEach(function (r) {
         var slug = String(r.public_path || "").replace(/^\/+|\/+$/g, "");
         if (slug) byPath[slug] = r;
       });
+      var buckets = { internal: {}, archive: {} };
+      tree.forEach(function (e) {
+        if (e.type !== "blob") return;
+        var m = /^(internal|archive)\/([^\/]+)\/(.+)$/.exec(e.path);
+        if (!m) return;
+        var b = buckets[m[1]], slug = m[2], file = m[3];
+        if (!(slug in b)) b[slug] = null;
+        if (/\.html?$/i.test(file) && (file === "index.html" || b[slug] == null)) b[slug] = e.size;
+      });
       var pages = [];
-      live.forEach(function (slug) { pages.push(makeRec(slug, byPath[slug], "published")); });
-      archived.forEach(function (slug) { pages.push(makeRec(slug, byPath[slug], "archived")); });
+      Object.keys(buckets.internal).sort().forEach(function (slug) { pages.push(makeRec(slug, byPath[slug], "published", buckets.internal[slug])); });
+      Object.keys(buckets.archive).sort().forEach(function (slug) { pages.push(makeRec(slug, byPath[slug], "archived", buckets.archive[slug])); });
       // Publish metadata from the latest commit touching each live folder.
       await Promise.all(pages.map(async function (p) {
         var dir = (p.status === "archived" ? "archive/" : "internal/") + p.slug;
@@ -76,7 +82,7 @@
       return (authorName || "").split(" ")[0];
     }
 
-    function makeRec(slug, row, status) {
+    function makeRec(slug, row, status, sizeBytes) {
       return {
         slug: slug,
         url: CFG.site.baseUrl + "/" + slug + "/",
@@ -84,6 +90,7 @@
         notes: row ? String(row.notes || "") : "",
         code: row ? String(row.plaintext_code || "") : "",
         status: status,
+        sizeBytes: sizeBytes != null ? sizeBytes : null,
         lastPublished: null,
         publishedBy: "",
       };
@@ -157,12 +164,13 @@
         await gh.deleteDir(G.privateRepo, (status === "archived" ? "archive/" : "internal/") + slug, commitMsg("Delete", slug));
       },
       // Snapshot the public ciphertext sha so an update can detect re-publish.
+      // metaOnly: polling must not download multi-MB ciphertext every tick.
       getEncSha: async function (slug) {
-        var f = await gh.getFile(G.publicRepo, slug + "/content.enc");
+        var f = await gh.getFile(G.publicRepo, slug + "/content.enc", true);
         return f ? f.sha : null;
       },
       checkPublished: async function (slug, prevEncSha) {
-        var f = await gh.getFile(G.publicRepo, slug + "/content.enc");
+        var f = await gh.getFile(G.publicRepo, slug + "/content.enc", true);
         if (!f) return false;
         if (prevEncSha && f.sha === prevEncSha) return false; // update not live yet
         // Confirm the page itself serves 200.
@@ -172,7 +180,7 @@
         } catch (e) { return false; }
       },
       checkUnpublished: async function (slug) {
-        var f = await gh.getFile(G.publicRepo, slug + "/content.enc");
+        var f = await gh.getFile(G.publicRepo, slug + "/content.enc", true);
         return !f;
       },
     };

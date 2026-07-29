@@ -34,10 +34,10 @@ window.ADMIN_CONFIG = {
     pollIntervalMs: 15000,   // how often to check a pending page
     pollTimeoutMs: 600000,   // 10 min without success -> error state
     pageSize: 12,            // rows per page before pagination appears
-    // Hard upload cap: the GitHub contents API github.js relies on cannot read
-    // blobs over 1 MB back, which breaks update/archive and publish polling.
-    // Raise only after the git-blobs-API fix (TODO.md "Pages over ~1 MB").
-    maxUploadBytes: 1048576,
+    // Upload cap. Large files are supported (reads over 1 MB go through the
+    // git blobs API), so this is a sanity bound, not an API limit — the gate
+    // decrypts the whole page in the browser, so keep pages lean.
+    maxUploadBytes: 26214400, // 25 MB
   },
   helpDesk: {
     // Service-desk portal for access requests and failed-publish investigations.

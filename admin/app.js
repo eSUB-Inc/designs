@@ -193,6 +193,7 @@
         <button class="iconbtn" data-tip="Copy secure link (URL + code)" disabled=${!pg.code} onClick=${function () { copy(secure, "Secure link copied"); }}>${icon("enhanced_encryption")}</button>`}
       </div></td>
       <td>${archived ? html`<span class="pgtitle">—</span>` : html`<${CodeCell} code=${pg.code} copy=${copy} />`}</td>
+      <td style=${{ whiteSpace: "nowrap" }}>${pg.sizeBytes != null ? fmtSize(pg.sizeBytes) : "—"}</td>
       <td style=${{ whiteSpace: "nowrap" }}>${fmtDate(pg.lastPublished)}</td>
       <td>${pg.publishedBy || "—"}</td>
       <td><div class="rowactions">
@@ -446,7 +447,7 @@
                 : "No pages yet. Upload the first one."}
             </div>`
           : html`<div class="tablewrap"><table>
-            <thead><tr>${sortHeader("Page", "name")}${filterHeader("Status", "status", statusOptions, statusFilter, setStatusFilter)}<th>Notes</th><th>Public URL</th><th>Access Code</th>${sortHeader("Last Published", "pub")}${filterHeader("By", "by", byOptions, byFilter, setByFilter)}<th style=${{ textAlign: "right" }}>Actions</th></tr></thead>
+            <thead><tr>${sortHeader("Page", "name")}${filterHeader("Status", "status", statusOptions, statusFilter, setStatusFilter)}<th>Notes</th><th>Public URL</th><th>Access Code</th><th>Size</th>${sortHeader("Last Published", "pub")}${filterHeader("By", "by", byOptions, byFilter, setByFilter)}<th style=${{ textAlign: "right" }}>Actions</th></tr></thead>
             <tbody>
               ${visible.map(function (pg) {
                 return html`<${Row} key=${pg.slug + pg.status} page=${pg} pending=${pendingBySlug[pg.slug]} copy=${copy} onFail=${failModal}
