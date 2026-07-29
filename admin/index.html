@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <title>eSUB Designs — Publishing Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="root"></div>
+  <!-- Pinned versions with SRI: a compromised or swapped CDN file refuses to load.
+       Recompute the hash when bumping a version:
+       curl -sSfL <url> | openssl dgst -sha384 -binary | openssl base64 -A -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"
+    integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"
+    integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/htm@3.1.1/dist/htm.js"
+    integrity="sha384-iPOMe3E8jVgp/PepuDy7lJvw7L/QP97X5POfi+X1EVyDVQi8Kuv/MooNVB5OFXVN" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.4/lib/msal-browser.min.js"
+    integrity="sha384-FyFWjaUFP9q0tLEvcwV9UloGlRNkfP3l+vmNCjwLpji7ChADDrvdXXXNIufO0sEw" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+    integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="github.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
