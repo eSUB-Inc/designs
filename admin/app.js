@@ -428,7 +428,7 @@
               ${p.status === "publishing" ? html`<span class="spin"></span>` : p.status === "published" ? html`<span class="check">${icon("check_circle")}</span>` : html`<span style=${{ color: "var(--red)" }}>${icon("error_outline")}</span>`}
               <div style=${{ flex: 1 }}>
                 <div class="name">${p.slug} <span class="sub">· ${p.kind}</span></div>
-                <div class="sub">${p.status === "publishing" ? (p.kind === "archive" ? "Waiting for the page to be taken down…" : "Waiting for the GitHub workflow to publish…")
+                <div class="sub">${p.status === "publishing" ? (p.kind === "archive" ? "Waiting for the page to be taken down…" : "Waiting for the process to finish…")
                   : p.status === "published" ? (p.kind === "archive" ? "Unpublished — the page now returns 404" : "Live at " + CFG.site.baseUrl + "/" + p.slug + "/" + (pg && pg.code ? " · code ready" : ""))
                   : p.error}</div>
               </div>
