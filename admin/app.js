@@ -159,14 +159,33 @@
 
   // ---------- row ----------
   function CodeCell(props) {
-    var st = useState(false); var shown = st[0], setShown = st[1];
     var code = props.code;
     if (!code) return html`<span class="pgtitle">pending</span>`;
     return html`<div class="codecell">
-      <span class="codeval">${shown ? code : "•••••••••••••"}</span>
-      <button class="iconbtn" data-tip=${shown ? "Hide code" : "Reveal code"} onClick=${function () { setShown(!shown); }}>${icon(shown ? "visibility_off" : "visibility")}</button>
+      <span class="codeval">•••••••••••••</span>
+      <button class="iconbtn" data-tip="Reveal code" onClick=${props.onReveal}>${icon("visibility")}</button>
       <button class="iconbtn" data-tip="Copy code" onClick=${function () { props.copy(code, "Code copied"); }}>${icon("content_copy")}</button>
     </div>`;
+  }
+
+  // Reveal in a dialog instead of inline: the full code is wider than the
+  // masked dots and reflowed the whole table. Esc / X / outside click close.
+  function CodeModal(props) {
+    useEffect(function () {
+      function onKey(e) { if (e.key === "Escape") { e.preventDefault(); props.onClose(); } }
+      document.addEventListener("keydown", onKey, true);
+      return function () { document.removeEventListener("keydown", onKey, true); };
+    }, []);
+    return html`<${Modal} onClose=${props.onClose}>
+      <div class="modal-head">
+        <h2>Access code — ${props.page.slug}</h2>
+        <span style=${{ flex: 1 }}></span>
+        <button class="iconbtn" data-tip="Copy code" onClick=${function () { props.copy(props.page.code, "Code copied"); }}>${icon("content_copy")}</button>
+        <button class="iconbtn" data-tip="Close" onClick=${props.onClose}>${icon("close")}</button>
+      </div>
+      <div class="codereveal">${props.page.code}</div>
+      <p class="keyhint">Esc or click outside to close</p>
+    <//>`;
   }
 
   function StatusChip(props) {
@@ -193,7 +212,7 @@
         <button class="iconbtn" data-tip="Copy URL" onClick=${function () { copy(pg.url, "URL copied"); }}>${icon("content_copy")}</button>
         <button class="iconbtn" data-tip="Copy secure link (URL + code)" disabled=${!pg.code} onClick=${function () { copy(secure, "Secure link copied"); }}>${icon("enhanced_encryption")}</button>`}
       </div></td>
-      <td>${archived ? html`<span class="pgtitle">—</span>` : html`<${CodeCell} code=${pg.code} copy=${copy} />`}</td>
+      <td>${archived ? html`<span class="pgtitle">—</span>` : html`<${CodeCell} code=${pg.code} copy=${copy} onReveal=${function () { props.onCode(pg); }} />`}</td>
       <td style=${{ whiteSpace: "nowrap" }}>${pg.sizeBytes != null ? fmtSize(pg.sizeBytes) : "—"}</td>
       <td style=${{ whiteSpace: "nowrap" }}>${fmtDate(pg.lastPublished)}</td>
       <td>${pg.publishedBy || "—"}</td>
@@ -455,6 +474,7 @@
             <tbody>
               ${visible.map(function (pg) {
                 return html`<${Row} key=${pg.slug + pg.status} page=${pg} pending=${pendingBySlug[pg.slug]} copy=${copy} onFail=${failModal}
+                  onCode=${function (p) { setModal({ kind: "code", page: p }); }}
                   onNotes=${function (p) { setModal({ kind: "notes", page: p }); }}
                   onUpdate=${function (p) { setModal({ kind: "update", page: p }); }}
                   onReset=${function (p) { setModal({ kind: "reset", page: p }); }}
@@ -490,6 +510,7 @@
       ${modal && modal.kind === "restore" && html`<${ConfirmModal} title="Restore page" danger=${false} confirmLabel="Restore"
         body=${"“" + modal.page.slug + "” will be republished at " + CFG.site.baseUrl + "/" + modal.page.slug + "/ with a newly minted access code (the pre-archive code was retired). Share the new secure link once it is live."}
         onClose=${function () { setModal(null); }} onConfirm=${function () { doRestore(modal.page); }} />`}
+      ${modal && modal.kind === "code" && html`<${CodeModal} page=${modal.page} copy=${copy} onClose=${function () { setModal(null); }} />`}
       ${modal && modal.kind === "notes" && html`<${NotesModal} page=${modal.page} onClose=${function () { setModal(null); }} onSave=${doSaveNotes} />`}
       ${modal && modal.kind === "fail" && html`<${FailModal} pending=${modal.pending} copy=${copy} onClose=${function () { setModal(null); }} />`}
       <${Toasts} items=${toasts} onDismiss=${dismissToast} />

@@ -160,6 +160,7 @@ td.notes-edit:hover .noteicon { opacity: 1; }
 .keyhint { font-size: 11px; color: var(--muted); opacity: .7; margin: 10px 0 0; text-align: right; }
 .modal .errline { color: var(--red); font-size: 13px; font-weight: 600; margin-top: 12px; }
 .copyblock { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; white-space: pre-wrap; max-height: 180px; overflow: auto; color: var(--text); }
+.codereveal { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 18px 16px; margin-top: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 17px; font-weight: 600; letter-spacing: .05em; text-align: center; color: var(--heading); overflow-wrap: anywhere; user-select: all; }
 
 /* Login */
 .login-wrap { min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 24px; }
