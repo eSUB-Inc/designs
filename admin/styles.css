@@ -92,6 +92,8 @@ th.th-filtered { color: var(--coral-active); }
 .filter-pop { position: fixed; z-index: 40; background: var(--card); border: 1px solid var(--border); border-radius: 5px; box-shadow: 0 8px 24px rgba(10,18,26,.18); padding: 8px 0; min-width: 160px; text-transform: none; letter-spacing: 0; font-weight: 400; }
 .filter-pop label { display: flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 13px; color: var(--text); cursor: pointer; }
 .filter-pop label:hover { background: rgba(128,128,128,.08); }
+.filter-pop label.dead { opacity: .4; cursor: default; }
+.filter-pop label.dead:hover { background: none; }
 .filter-pop .clearbtn { display: block; width: calc(100% - 20px); margin: 6px 10px 2px; background: none; border: 1px solid var(--border); border-radius: 4px; padding: 5px; font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer; }
 .filter-pop .clearbtn:hover { border-color: var(--muted); }
 .filter-pop .clearbtn:disabled { opacity: .4; cursor: default; }

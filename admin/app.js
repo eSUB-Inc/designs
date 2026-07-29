@@ -190,7 +190,7 @@
 
   function StatusChip(props) {
     var p = props.pending;
-    if (p && p.status === "publishing") return html`<span class="chip pending"><span class="spin" style=${{ width: "11px", height: "11px", borderWidth: "1.5px" }}></span>${p.kind === "archive" ? "Unpublishing" : "Publishing"}</span>`;
+    if (p && p.status === "publishing") return html`<span class="chip pending"><span class="spin" style=${{ width: "11px", height: "11px", borderWidth: "1.5px" }}></span>${p.kind === "archive" ? "Unpublishing" : p.kind === "delete" ? "Deleting" : "Publishing"}</span>`;
     if (p && p.status === "failed") return html`<span class="chip failed" onClick=${function () { props.onFail(p); }}>${icon("error_outline")}Failed — details</span>`;
     if (props.page.status === "archived") return html`<span class="chip archived">${icon("inventory_2")}Archived</span>`;
     if (!props.page.code) return html`<span class="chip pending"><span class="spin" style=${{ width: "11px", height: "11px", borderWidth: "1.5px" }}></span>Publishing</span>`;
@@ -267,14 +267,15 @@
         for (var i = 0; i < items.length; i++) {
           var p = items[i];
           try {
-            var done = p.kind === "archive"
+            var takedown = p.kind === "archive" || p.kind === "delete";
+            var done = takedown
               ? await store.checkUnpublished(p.slug)
               : await store.checkPublished(p.slug, p.prevEncSha);
             if (done) {
               markPending(p.slug, { status: "published" });
               await reload();
             } else if (Date.now() - p.startedAt > CFG.publishing.pollTimeoutMs) {
-              markPending(p.slug, { status: "failed", error: (p.kind === "archive" ? "Unpublish" : "Publish") + " did not complete within " + Math.round(CFG.publishing.pollTimeoutMs / 60000) + " minutes." });
+              markPending(p.slug, { status: "failed", error: (p.kind === "archive" ? "Unpublish" : p.kind === "delete" ? "Delete" : "Publish") + " did not complete within " + Math.round(CFG.publishing.pollTimeoutMs / 60000) + " minutes." });
             }
           } catch (e) {
             // Transient poll errors (rate limit, network blip) are retried on
@@ -354,6 +355,9 @@
       try { await store.deletePage(pg.slug, pg.status); }
       catch (e) { toast("Delete failed: " + e.message, "error"); reload(); return; }
       audit(user, "delete", pg.slug, "was " + pg.status);
+      // Archived pages are already off the public site; published ones need the
+      // pipeline takedown tracked until the URL actually stops serving.
+      if (pg.status !== "archived") addPending(pg.slug, "delete");
       toast(pg.slug + " deleted");
       reload();
     }
@@ -396,7 +400,7 @@
         ${label}<span class="tharrow">${active ? (sort.dir === 1 ? "\u2191" : "\u2193") : ""}</span>
       </th>`;
     }
-    function filterHeader(label, id, options, selected, setSelected) {
+    function filterHeader(label, id, options, selected, setSelected, counts) {
       function toggle(opt) {
         setSelected(selected.indexOf(opt) >= 0 ? selected.filter(function (x) { return x !== opt; }) : selected.concat(opt));
       }
@@ -409,7 +413,12 @@
         ${label}<span class="material-icons-outlined thfilter">filter_list</span>
         ${open && html`<div class="filter-pop" style=${{ left: openFilter.x + "px", top: openFilter.y + "px" }} onClick=${function (e) { e.stopPropagation(); }}>
           ${options.map(function (opt) {
-            return html`<label key=${opt}><input type="checkbox" checked=${selected.indexOf(opt) >= 0} onChange=${function () { toggle(opt); }} /> ${opt}</label>`;
+            // An option that can't yield rows (given search + the other filter)
+            // is dimmed and unclickable — unless it's already selected, so it
+            // can still be unchecked. Recomputed every render, so it tracks
+            // live status changes from the publish poller.
+            var dead = !(counts && counts[opt] > 0) && selected.indexOf(opt) < 0;
+            return html`<label key=${opt} class=${dead ? "dead" : ""}><input type="checkbox" disabled=${dead} checked=${selected.indexOf(opt) >= 0} onChange=${function () { toggle(opt); }} /> ${opt}</label>`;
           })}
           <button class="clearbtn" disabled=${!selected.length} onClick=${function () { setSelected([]); setOpenFilter(null); }}>Clear filter</button>
         </div>`}
@@ -420,6 +429,20 @@
       return Object.keys(s).sort();
     }, [pages]);
     var statusOptions = ["Published", "Publishing", "Unpublishing", "Archived", "Failed"];
+    // Per-option row counts, each dimension judged against search + the OTHER
+    // filter. Plain render-time computation so an open popover tracks status
+    // transitions (Publishing -> Published etc.) as the poller updates state.
+    var statusCounts = {}, byCounts = {};
+    (function () {
+      var q = search.trim().toLowerCase();
+      pages.forEach(function (p) {
+        if (q && p.slug.indexOf(q) < 0 && (p.title || "").toLowerCase().indexOf(q) < 0) return;
+        var st = effStatus(p, pendingBySlug[p.slug]);
+        var by = p.publishedBy || "\u2014";
+        if (!byFilter.length || byFilter.indexOf(by) >= 0) statusCounts[st] = (statusCounts[st] || 0) + 1;
+        if (!statusFilter.length || statusFilter.indexOf(st) >= 0) byCounts[by] = (byCounts[by] || 0) + 1;
+      });
+    })();
     var strip = pending.filter(function (p) { return p.status !== "published" || Date.now() - p.startedAt < 3600000; });
 
     function failModal(p) { setModal({ kind: "fail", pending: p }); }
@@ -448,8 +471,8 @@
               ${p.status === "publishing" ? html`<span class="spin"></span>` : p.status === "published" ? html`<span class="check">${icon("check_circle")}</span>` : html`<span style=${{ color: "var(--red)" }}>${icon("error_outline")}</span>`}
               <div style=${{ flex: 1 }}>
                 <div class="name">${p.slug} <span class="sub">· ${p.kind}</span></div>
-                <div class="sub">${p.status === "publishing" ? (p.kind === "archive" ? "Waiting for the page to be taken down…" : "Waiting for the process to finish…")
-                  : p.status === "published" ? (p.kind === "archive" ? "Unpublished — the page now returns 404" : "Live at " + CFG.site.baseUrl + "/" + p.slug + "/" + (pg && pg.code ? " · code ready" : ""))
+                <div class="sub">${p.status === "publishing" ? (p.kind === "archive" || p.kind === "delete" ? "Waiting for the page to be taken down…" : "Waiting for the process to finish…")
+                  : p.status === "published" ? (p.kind === "archive" ? "Unpublished — the page now returns 404" : p.kind === "delete" ? "Deleted — the page now returns 404" : "Live at " + CFG.site.baseUrl + "/" + p.slug + "/" + (pg && pg.code ? " · code ready" : ""))
                   : p.error}</div>
               </div>
               ${p.status === "failed" && html`<button class="btn btn-quiet" onClick=${function () { failModal(p); }}>Details</button>`}
@@ -470,7 +493,7 @@
                 : "No pages yet. Upload the first one."}
             </div>`
           : html`<div class="tablewrap"><table>
-            <thead><tr>${sortHeader("Page", "name")}${filterHeader("Status", "status", statusOptions, statusFilter, setStatusFilter)}<th>Notes</th><th>Public URL</th><th>Access Code</th><th>Size</th>${sortHeader("Last Published", "pub")}${filterHeader("By", "by", byOptions, byFilter, setByFilter)}<th style=${{ textAlign: "right" }}>Actions</th></tr></thead>
+            <thead><tr>${sortHeader("Page", "name")}${filterHeader("Status", "status", statusOptions, statusFilter, setStatusFilter, statusCounts)}<th>Notes</th><th>Public URL</th><th>Access Code</th><th>Size</th>${sortHeader("Last Published", "pub")}${filterHeader("By", "by", byOptions, byFilter, setByFilter, byCounts)}<th style=${{ textAlign: "right" }}>Actions</th></tr></thead>
             <tbody>
               ${visible.map(function (pg) {
                 return html`<${Row} key=${pg.slug + pg.status} page=${pg} pending=${pendingBySlug[pg.slug]} copy=${copy} onFail=${failModal}
