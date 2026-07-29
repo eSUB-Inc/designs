@@ -171,7 +171,7 @@
 
   function StatusChip(props) {
     var p = props.pending;
-    if (p && p.status === "publishing") return html`<span class="chip pending"><span class="spin" style=${{ width: "11px", height: "11px", borderWidth: "1.5px" }}></span>Publishing</span>`;
+    if (p && p.status === "publishing") return html`<span class="chip pending"><span class="spin" style=${{ width: "11px", height: "11px", borderWidth: "1.5px" }}></span>${p.kind === "archive" ? "Unpublishing" : "Publishing"}</span>`;
     if (p && p.status === "failed") return html`<span class="chip failed" onClick=${function () { props.onFail(p); }}>${icon("error_outline")}Failed — details</span>`;
     if (props.page.status === "archived") return html`<span class="chip archived">${icon("inventory_2")}Archived</span>`;
     if (!props.page.code) return html`<span class="chip pending"><span class="spin" style=${{ width: "11px", height: "11px", borderWidth: "1.5px" }}></span>Publishing</span>`;
@@ -208,7 +208,7 @@
 
   // ---------- main screen ----------
   function effStatus(pg, pend) {
-    if (pend && pend.status === "publishing") return "Publishing";
+    if (pend && pend.status === "publishing") return pend.kind === "archive" ? "Unpublishing" : "Publishing";
     if (pend && pend.status === "failed") return "Failed";
     if (pg.status === "archived") return "Archived";
     return pg.code ? "Published" : "Publishing";
@@ -247,12 +247,14 @@
         for (var i = 0; i < items.length; i++) {
           var p = items[i];
           try {
-            var done = await store.checkPublished(p.slug, p.prevEncSha);
+            var done = p.kind === "archive"
+              ? await store.checkUnpublished(p.slug)
+              : await store.checkPublished(p.slug, p.prevEncSha);
             if (done) {
               markPending(p.slug, { status: "published" });
               await reload();
             } else if (Date.now() - p.startedAt > CFG.publishing.pollTimeoutMs) {
-              markPending(p.slug, { status: "failed", error: "Publish did not complete within " + Math.round(CFG.publishing.pollTimeoutMs / 60000) + " minutes." });
+              markPending(p.slug, { status: "failed", error: (p.kind === "archive" ? "Unpublish" : "Publish") + " did not complete within " + Math.round(CFG.publishing.pollTimeoutMs / 60000) + " minutes." });
             }
           } catch (e) {
             // Transient poll errors (rate limit, network blip) are retried on
@@ -314,6 +316,7 @@
       try { await store.archivePage(pg.slug); }
       catch (e) { toast("Archive failed: " + e.message, "error"); reload(); return; }
       audit(user, "archive", pg.slug);
+      addPending(pg.slug, "archive");
       toast(pg.slug + " archived — unpublish in progress");
       reload();
     }
@@ -396,7 +399,7 @@
       var s = {}; pages.forEach(function (p) { s[p.publishedBy || "\u2014"] = 1; });
       return Object.keys(s).sort();
     }, [pages]);
-    var statusOptions = ["Published", "Publishing", "Archived", "Failed"];
+    var statusOptions = ["Published", "Publishing", "Unpublishing", "Archived", "Failed"];
     var strip = pending.filter(function (p) { return p.status !== "published" || Date.now() - p.startedAt < 3600000; });
 
     function failModal(p) { setModal({ kind: "fail", pending: p }); }
@@ -425,8 +428,8 @@
               ${p.status === "publishing" ? html`<span class="spin"></span>` : p.status === "published" ? html`<span class="check">${icon("check_circle")}</span>` : html`<span style=${{ color: "var(--red)" }}>${icon("error_outline")}</span>`}
               <div style=${{ flex: 1 }}>
                 <div class="name">${p.slug} <span class="sub">· ${p.kind}</span></div>
-                <div class="sub">${p.status === "publishing" ? "Waiting for the GitHub workflow to publish…"
-                  : p.status === "published" ? "Live at " + CFG.site.baseUrl + "/" + p.slug + "/" + (pg && pg.code ? " · code ready" : "")
+                <div class="sub">${p.status === "publishing" ? (p.kind === "archive" ? "Waiting for the page to be taken down…" : "Waiting for the GitHub workflow to publish…")
+                  : p.status === "published" ? (p.kind === "archive" ? "Unpublished — the page now returns 404" : "Live at " + CFG.site.baseUrl + "/" + p.slug + "/" + (pg && pg.code ? " · code ready" : ""))
                   : p.error}</div>
               </div>
               ${p.status === "failed" && html`<button class="btn btn-quiet" onClick=${function () { failModal(p); }}>Details</button>`}

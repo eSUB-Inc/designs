@@ -181,7 +181,12 @@
       },
       checkUnpublished: async function (slug) {
         var f = await gh.getFile(G.publicRepo, slug + "/content.enc", true);
-        return !f;
+        if (f) return false;
+        // Repo file gone; wait until the live URL actually stops serving too.
+        try {
+          var res = await fetch(CFG.site.baseUrl + "/" + slug + "/", { method: "HEAD", cache: "no-store" });
+          return !res.ok;
+        } catch (e) { return false; }
       },
     };
   }
