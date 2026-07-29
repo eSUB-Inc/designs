@@ -127,7 +127,7 @@
     // Fallback if /404.html is itself unavailable.
     document.body.innerHTML =
       '<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:4rem 1rem;color:#323a42">' +
-      '<h1 style="color:#ed6a5a;font-size:3rem;margin:0">404</h1><p>Page not found.</p></div>';
+      '<h1 style="color:#fcba03;font-size:3rem;margin:0">404</h1><p>Page not found.</p></div>';
     reveal();
   }
 
@@ -140,7 +140,7 @@
     wrap.setAttribute("data-design-gate", "");
     wrap.innerHTML =
       '<style>' +
-      ':root{--coral:#ed6a5a;--coral-hover:#c54232;--muted:#5a626a;--border:#d7d7d7;--bg-soft:#f5f6f7;--card:#fff;--text:#323a42;--heading:#0a121a}' +
+      ':root{--coral:#fcba03;--coral-hover:#ffa500;--muted:#5a626a;--border:#d7d7d7;--bg-soft:#f5f6f7;--card:#fff;--text:#323a42;--heading:#0a121a}' +
       '@media (prefers-color-scheme:dark){:root{--bg-soft:#10191f;--card:#323a42;--text:#d7d7d7;--heading:#fff;--muted:#9aa4ad;--border:#3d4650}}' +
       '[data-design-gate]{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:1.5rem;' +
       'font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg-soft);' +
@@ -155,12 +155,12 @@
       '[data-design-gate] label{display:block;text-align:left;font-size:.85rem;font-weight:600;color:var(--heading);margin:0 0 .4rem}' +
       '[data-design-gate] input{width:100%;padding:12px 14px;font-size:1rem;font-family:inherit;color:var(--text);background:var(--bg-soft);' +
       'border:1px solid var(--border);border-radius:5px;outline:none}' +
-      '[data-design-gate] input:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(237,106,90,.15)}' +
+      '[data-design-gate] input:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(252,186,3,.2)}' +
       '[data-design-gate] button{margin-top:1rem;width:100%;background:var(--coral);color:#fff;font-weight:700;font-size:1rem;' +
       'font-family:inherit;border:0;padding:13px 0;border-radius:5px;cursor:pointer;transition:background-color .15s ease}' +
       '[data-design-gate] button:hover{background:var(--coral-hover)}' +
       '[data-design-gate] button:disabled{opacity:.6;cursor:default}' +
-      '[data-design-gate] .err{min-height:1.2rem;margin:.75rem 0 0;font-size:.9rem;color:var(--coral);font-weight:600}' +
+      '[data-design-gate] .err{min-height:1.2rem;margin:.75rem 0 0;font-size:.9rem;color:#d32f2f;font-weight:600}' +
       '[data-design-gate].shake .card{animation:dg-shake .4s}' +
       '@keyframes dg-shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}' +
       '</style>' +
