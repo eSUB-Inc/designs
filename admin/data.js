@@ -1,6 +1,5 @@
 // Data layer: joins internal/ + archive/ folders, access-codes.xlsx, and commit
 // metadata into page records, and performs the write operations the UI needs.
-// Two implementations with one interface: RealStore (GitHub API) and DemoStore.
 // Exposes window.AdminData = { makeStore }.
 (function () {
   "use strict";
