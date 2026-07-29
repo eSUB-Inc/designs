@@ -93,7 +93,7 @@
     function onPick(f) {
       if (f.size > max) {
         setSizeErr("“" + f.name + "” is " + fmtSize(f.size) + " — over the " + fmtSize(max) +
-          " limit. The admin publish app needs to be updated to support larger uploads, or the uploaded file's size needs to be reduced.");
+          " limit. Reduce the file's size (viewers decrypt the whole page in the browser, so heavy pages load slowly). If a larger page is genuinely needed, the limit can be raised in the app's config.");
         return;
       }
       setSizeErr(null);
