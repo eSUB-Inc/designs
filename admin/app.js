@@ -119,7 +119,6 @@
       </button>
       ${!props.configured && html`<p class="hint" style=${{ marginTop: "12px" }}>Microsoft sign-in isn't configured in <code>config.js</code> yet.</p>`}
       <p class="hint" style=${{ marginTop: "12px" }}>Need access? <${HelpDesk} suffix=" to request it." /></p>
-      <a class="demo-link" href="#demo" onClick=${function (e) { e.preventDefault(); props.onDemo(); }}>Explore in Demo Mode (simulated data)</a>
     </div></div>`;
   }
 
@@ -258,7 +257,7 @@
             }
           }
         }
-      }, store.demo ? 3000 : CFG.publishing.pollIntervalMs);
+      }, CFG.publishing.pollIntervalMs);
       return function () { clearInterval(t); };
     }, [store]);
 
@@ -406,7 +405,6 @@
         <span class="user"><span class="avatar">${(user.firstName || "?").slice(0, 1).toUpperCase()}</span>${user.name}</span>
         <button class="signout" onClick=${props.onSignOut}>Sign out</button>
       </header>
-      ${store.demo && html`<div class="demo-banner">Demo Mode — simulated data; no GitHub or Microsoft calls are made.</div>`}
       <div class="wrap">
         <div class="toolbar">
           <h1>Pages</h1>
@@ -628,7 +626,7 @@
             setUser(acct);
             // Proxy mode: the Entra login is the only gate — no GitHub token to collect.
             if (CFG.proxy && CFG.proxy.baseUrl) {
-              setStore(window.AdminData.makeStore(acct, false));
+              setStore(window.AdminData.makeStore(acct));
               setPhase("app");
               return;
             }
@@ -636,7 +634,7 @@
             try { pat = sessionStorage.getItem("designs-admin-pat"); } catch (e) {}
             if (pat) {
               window.GitHubApi.setToken(pat);
-              setStore(window.AdminData.makeStore(acct, false));
+              setStore(window.AdminData.makeStore(acct));
               setPhase("app");
             } else setPhase("pat");
             return;
@@ -646,20 +644,13 @@
       })();
     }, []);
 
-    function startDemo() {
-      var demoUser = { username: "jason@esub.com", name: "Jason Carter", firstName: "Jason" };
-      setUser(demoUser);
-      setStore(window.AdminData.makeStore(demoUser, true));
-      setPhase("app");
-    }
     function signOut() {
-      if (store && store.demo) { setStore(null); setUser(null); setPhase("login"); return; }
       window.AdminAuth.logout();
     }
 
     if (phase === "boot") return html`<div class="login-wrap"><div class="empty">Loading…</div></div>`;
-    if (phase === "login") return html`<div><${ThemeToggle} floating=${true} /><${LoginScreen} configured=${window.AdminAuth.isConfigured} onLogin=${function () { window.AdminAuth.login(); }} onDemo=${startDemo} /></div>`;
-    if (phase === "pat") return html`<div><${ThemeToggle} floating=${true} /><${PatGate} user=${user} onBack=${signOut} onReady=${function () { setStore(window.AdminData.makeStore(user, false)); setPhase("app"); }} /></div>`;
+    if (phase === "login") return html`<div><${ThemeToggle} floating=${true} /><${LoginScreen} configured=${window.AdminAuth.isConfigured} onLogin=${function () { window.AdminAuth.login(); }} /></div>`;
+    if (phase === "pat") return html`<div><${ThemeToggle} floating=${true} /><${PatGate} user=${user} onBack=${signOut} onReady=${function () { setStore(window.AdminData.makeStore(user)); setPhase("app"); }} /></div>`;
     return html`<${Main} store=${store} user=${user} onSignOut=${signOut} />`;
   }
 

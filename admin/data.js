@@ -179,84 +179,11 @@
     };
   }
 
-  // ---------------- Demo store (no network, simulated pipeline) ----------------
-  function DemoStore(user) {
-    var now = Date.now(), day = 86400000;
-    var pages = [
-      { slug: "designs-architecture", title: "Designs Architecture", notes: "Internal reference", code: "Girder-Cobalt-Slate-Beacon", status: "published", lastPublished: new Date(now - 2 * day).toISOString(), publishedBy: "Jason" },
-      { slug: "directory1", title: "Directory Concept A", notes: "", code: "Rebar-Trowel-Summit-Anvil", status: "published", lastPublished: new Date(now - 9 * day).toISOString(), publishedBy: "Priya" },
-      { slug: "directory2", title: "Directory Concept B", notes: "Superseded by A", code: "Mortar-Falcon-Ridge-Crane", status: "archived", lastPublished: new Date(now - 30 * day).toISOString(), publishedBy: "Priya" },
-      { slug: "readme-how-to", title: "How-To Guide", notes: "Shared with pilot customers", code: "Beam-Lantern-Quarry-Drift", status: "published", lastPublished: new Date(now - 1 * day).toISOString(), publishedBy: "Marcus" },
-      { slug: "sample", title: "Sample Preview", notes: "", code: "Joist-Harbor-Cinder-Peak", status: "published", lastPublished: new Date(now - 20 * day).toISOString(), publishedBy: "Jason" },
-    ];
-    var publishAt = {}; // slug -> timestamp when the simulated Action "finishes"
-    function delay(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-    function words() {
-      var W = ["Girder", "Cobalt", "Slate", "Beacon", "Rebar", "Trowel", "Summit", "Anvil", "Mortar", "Falcon", "Ridge", "Crane", "Joist", "Harbor", "Cinder", "Peak"];
-      var out = [];
-      while (out.length < 4) { var w = W[Math.floor(Math.random() * W.length)]; if (out.indexOf(w) < 0) out.push(w); }
-      return out.join("-");
-    }
-    return {
-      user: user,
-      demo: true,
-      loadPages: async function () {
-        await delay(400);
-        return pages.map(function (p) { return Object.assign({ url: CFG.site.baseUrl + "/" + p.slug + "/" }, p); });
-      },
-      uploadPage: async function (slug) {
-        await delay(600);
-        pages.push({ slug: slug, title: "", notes: "", code: "", status: "published", lastPublished: null, publishedBy: user.firstName });
-        publishAt[slug] = Date.now() + 14000;
-      },
-      updatePage: async function (slug) {
-        await delay(600);
-        publishAt[slug] = Date.now() + 14000;
-      },
-      resetCode: async function (slug) {
-        await delay(500);
-        var p = pages.find(function (x) { return x.slug === slug; });
-        if (p) { p.code = ""; publishAt[slug] = Date.now() + 9000; }
-      },
-      saveNotes: async function (slug, notes) {
-        await delay(400);
-        var p = pages.find(function (x) { return x.slug === slug; });
-        if (p) p.notes = notes;
-      },
-      archivePage: async function (slug) {
-        await delay(500);
-        var p = pages.find(function (x) { return x.slug === slug; });
-        if (p) p.status = "archived";
-      },
-      restorePage: async function (slug) {
-        await delay(500);
-        var p = pages.find(function (x) { return x.slug === slug; });
-        if (p) { p.status = "published"; p.code = ""; publishAt[slug] = Date.now() + 9000; }
-      },
-      deletePage: async function (slug) {
-        await delay(500);
-        var i = pages.findIndex(function (x) { return x.slug === slug; });
-        if (i >= 0) pages.splice(i, 1);
-      },
-      getEncSha: async function () { return "demo-sha"; },
-      checkPublished: async function (slug) {
-        await delay(300);
-        if (!publishAt[slug] || Date.now() < publishAt[slug]) return false;
-        var p = pages.find(function (x) { return x.slug === slug; });
-        if (p) {
-          if (!p.code) p.code = words();
-          p.lastPublished = new Date().toISOString();
-          p.publishedBy = user.firstName;
-        }
-        delete publishAt[slug];
-        return true;
-      },
-      checkUnpublished: async function () { await delay(300); return true; },
-    };
-  }
-
+  // Demo Mode was removed from the deployed app: its simulated data exposed the
+  // real access-code vocabulary/pattern in this public file. The DemoStore lives
+  // on in the internal handoff bundle's git history if ever needed for UX review.
   window.AdminData = {
     slugify: slugify,
-    makeStore: function (user, demo) { return demo ? DemoStore(user) : RealStore(user); },
+    makeStore: function (user) { return RealStore(user); },
   };
 })();
