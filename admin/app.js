@@ -185,7 +185,8 @@
     return html`<tr>
       <td><div class="pgname">${pg.slug}</div>${pg.title && html`<div class="pgtitle">${pg.title}</div>`}</td>
       <td><${StatusChip} page=${pg} pending=${props.pending} onFail=${props.onFail} /></td>
-      <td class="notes ${archived ? "" : "notes-edit"}" title=${archived ? undefined : "Click to edit notes"}
+      <td class="notes ${archived ? "" : "notes-edit"}"
+        title=${pg.notes ? pg.notes + (archived ? "" : "\n\n(click to edit)") : archived ? undefined : "Click to add notes"}
         onClick=${archived ? undefined : function () { props.onNotes(pg); }}>${pg.notes || "—"}${!archived && html`<span class="material-icons-outlined noteicon">edit</span>`}</td>
       <td><div class="urlcell">
         ${archived ? html`<span class="pgtitle">unpublished</span>` : html`<a href=${pg.url} target="_blank" rel="noopener">/${pg.slug}/</a>
